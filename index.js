@@ -1,82 +1,194 @@
-import { readPdf } from "./services/pdfReader.js";
 import { chunkText } from "./services/chunker.js";
 import { generateEmbedding } from "./services/embedding.js";
-import { addToVectorStore, getVectorStore, search } from "./services/vectorStore.js";
-import { askLLM } from "./services/llm.js";
 import { createCollection, insertChunk, deleteChunk } from "./services/qdrant.js";
 import { loadMetadata, saveMetadata } from "./services/metadata.js";
 import { generateChunkId } from "./services/hash.js";
+import { search } from "./services/vectorStore.js"
+import { askLLM } from "./services/llm.js";
+
+const BATCH_SIZE = 10;
 
 async function main() {
-  //const text = await readPdf("./employee.pdf");
+  await createCollection();
 
-  //console.log(text);
-  const chunks = [
+  // Replace this with readPdf(...) later
+  const documents = [
     "Employees receive 20 annual leaves every year.",
     "Employees can carry forward up to 5 unused leaves.",
     "Employees are covered under the company medical insurance plan.",
     "Work from home is allowed twice a week with manager approval.",
     "The notice period for resignation is 60 days.",
-    "The cafeteria serves breakfast from 8 AM.",
   ];
 
-  //const chunks = chunkText(text);
+  //const chunks = chunkText(documents);
+  const chunks = documents;
 
-  /*for (const chunk of chunks) {
-    const embedding = await generateEmbedding(chunk);
-    addToVectorStore(chunk, embedding);
-  }*/
-
-  await createCollection();
   const metadata = loadMetadata();
-  const currentIds = new Set();
-  const BATCH_SIZE = 10;
-  
-  for (let i = 0; i < chunks.length; i++) {
 
-    //const id = i + 1;
-    /*const hash = calculateHash(chunks[i]);
-    const id = hashToUUID(hash);*/
-    const { id, hash } = generateChunkId(chunks[i]);
-    //console.log(id);
-    //console.log(hash);
+  const currentIds = new Set();
+
+  const chunksToProcess = [];
+
+  // -----------------------------
+  // Detect changed/new chunks
+  // -----------------------------
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const { id, hash } = generateChunkId(chunk);
     currentIds.add(id);
 
-    if (metadata[id] && metadata[id].hash === hash) {
-      console.log(`Skipping chunk ${chunks[i]}`);
+    if (
+      metadata[id] &&
+      metadata[id].hash === hash
+    ) {
+      console.log(`Skipping chunk ${i}`);
       continue;
     }
-    console.log(`Embedding chunk ${chunks[i]}`);
 
-    const embedding = await generateEmbedding(chunks[i]);
-
-    await insertChunk(id, embedding,
-      {
-        text: chunks[i],
-        hash,
-        chunkIndex: i,
-        source: "employee_handbook",
-      }
-    );
-
-    metadata[id] = {
+    chunksToProcess.push({
+      id,
       hash,
+      chunk,
       chunkIndex: i,
-      source: "employee_handbook",
-      lastUpdated: new Date().toISOString(),
-    };
+    });
   }
 
+  console.log(
+    `Need to process ${chunksToProcess.length} chunks`
+  );
+
+  // -----------------------------
+  // Batch processing
+  // -----------------------------
+  for (
+    let start = 0;
+    start < chunksToProcess.length;
+    start += BATCH_SIZE
+  ) {
+    const batch = chunksToProcess.slice(
+      start,
+      start + BATCH_SIZE
+    );
+
+    console.log(
+      `Processing batch ${start / BATCH_SIZE + 1}`
+    );
+
+    // ------------------------------------
+    // Step 1: Generate embeddings concurrently
+    // ------------------------------------
+
+    const embeddingResults = await Promise.allSettled(
+      batch.map(async (item) => {
+        const embedding = await retryAsync(
+          () => generateEmbedding(item.chunk),
+          3,
+          1000
+        );
+
+        return {
+          ...item,
+          embedding,
+        };
+      })
+    );
+
+    // ------------------------------------
+    // Step 2: Keep only successful embeddings
+    // ------------------------------------
+
+    const successfulItems = [];
+
+    for (const result of embeddingResults) {
+      if (result.status === "fulfilled") {
+        successfulItems.push(result.value);
+      } else {
+        console.error(
+          "Embedding failed:",
+          result.reason
+        );
+      }
+    }
+
+    // ------------------------------------
+    // Step 3: Upsert concurrently
+    // ------------------------------------
+
+    const upsertResults = await Promise.allSettled(
+      successfulItems.map(async (item) => {
+        await retryAsync(
+          () =>
+            insertChunk(
+              item.id,
+              item.embedding,
+              {
+                text: item.chunk,
+                hash: item.hash,
+                chunkIndex: item.chunkIndex,
+                source: "employee_handbook",
+              }
+            ),
+          3,
+          1000
+        );
+
+        return item;
+      })
+    );
+
+    // ------------------------------------
+    // Step 4: Update metadata only for successful upserts
+    // ------------------------------------
+
+    for (const result of upsertResults) {
+      if (result.status === "fulfilled") {
+        const item = result.value;
+
+        metadata[item.id] = {
+          hash: item.hash,
+          chunkIndex: item.chunkIndex,
+          source: "employee_handbook",
+          lastUpdated: new Date().toISOString(),
+        };
+
+        console.log(
+          `Upserted chunk ${item.chunkIndex}`
+        );
+      } else {
+        console.error(
+          "Upsert failed:",
+          result.reason
+        );
+      }
+    }
+    // -----------------------------
+    //  Persist checkpoint after every batch
+    // -----------------------------
+    saveMetadata(metadata);
+  }
+
+  // -----------------------------
+  // Delete removed chunks
+  // -----------------------------
   for (const id of Object.keys(metadata)) {
     if (!currentIds.has(id)) {
-      console.log(`Deleting ${id}`);
+      console.log(
+        `Deleting stale chunk ${id}`
+      );
+
       await deleteChunk(id);
+
       delete metadata[id];
     }
   }
+
+  // -----------------------------
+  // Save again after deletions
+  // -----------------------------
   saveMetadata(metadata);
 
-  //console.log(getVectorStore());
+  console.log("Ingestion complete!");
+
   const results = await search(
     "How many annual leaves do employees get?"
   );
@@ -87,8 +199,8 @@ async function main() {
   );
 
   console.log(answer);
-
-  //console.log(results);
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+});
