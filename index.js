@@ -208,22 +208,27 @@ The company encourages continuous learning and provides reimbursement for approv
   saveMetadata(metadata);
 
   console.log("Ingestion complete!");
-  const userQuery = "How many runs virat kohli scroed in odis";
-  const retrievedChunks = await search(userQuery);
+  const userQuestion = "How many annual leaves do employees get";
+  //const retrievedChunks = await search(userQuestion);
+  const retrievedChunks = await search(userQuestion, {
+    topK: 3,
+    minSimilarity: 0.75,
+    source: "employee_handbook",
+  });
 
   if (retrievedChunks.length === 0) {
-    console.log("No relevant context found.");
+    console.log("I could not find the answer in the provided context.");
     return;
   }
-  console.log("output after search is ", results);
+  console.log("output after search is ", retrievedChunks);
   //const answer = await askLLM(results, userQuery);
   const answer = await retryAsync(
-    () => askLLM(retrievedChunks, userQuery),
+    () => askLLM(retrievedChunks, userQuestion),
     3,
     30000 // wait 30 seconds before retry
   );
   console.log("**************************************")
-  console.log(`Answer for query ${userQuery} is : `, answer);
+  console.log(`Answer for query "${userQuestion}" is : `, answer);
   console.log("**************************************")
 }
 

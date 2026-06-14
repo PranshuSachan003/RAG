@@ -39,11 +39,18 @@ export async function insertChunk(id, embedding, payload) {
   });
 }
 
-export async function searchChunks(queryEmbedding, topK = 3) {
-  const result = await client.query("employee_docs", {
+export async function searchChunks(queryEmbedding, filter) {
+  /*const result = await client.query("employee_docs", {
     query: queryEmbedding,
     limit: topK,
     with_payload: true,
+  });*/
+
+  const result = await client.query("employee_docs", {
+    query: queryEmbedding,
+    limit: 10,
+    with_payload: true,
+    filter,
   });
 
   return result.points;

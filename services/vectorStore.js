@@ -33,7 +33,13 @@ function cosineSimilarity(vecA, vecB) {
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-export async function search(userQuestion, topK = 3, minSimilarity = 0.70) {
+export async function search(userQuestion, options = {}) {
+    const {
+        topK = 3,
+        minSimilarity = 0.75,
+        source,
+        department,
+    } = options;
     /*let searchResults = [];
     let userEmbed = await generateEmbedding(userQuestion);
     for (const ele of vectorStore) {
@@ -44,7 +50,33 @@ export async function search(userQuestion, topK = 3, minSimilarity = 0.70) {
 
     const queryEmbedding = await generateEmbedding(userQuestion);
 
-    const searchResults = await searchChunks(queryEmbedding);
+    const must = [];
+
+    if (source) {
+        must.push({
+            key: "source",
+            match: {
+                value: source,
+            },
+        });
+    }
+
+    if (department) {
+        must.push({
+            key: "department",
+            match: {
+                value: department,
+            },
+        });
+    }
+
+    const filter =
+        must.length > 0
+            ? { must }
+            : undefined;
+
+    //const searchResults = await searchChunks(queryEmbedding);
+    const searchResults = await searchChunks(queryEmbedding, filter);
     console.dir(searchResults, { depth: null });
     /*return searchResults.map(item => ({
         text: item.payload.text,
