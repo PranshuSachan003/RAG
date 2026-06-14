@@ -9,6 +9,21 @@ import { retryAsync } from "./services/retry.js"
 
 const BATCH_SIZE = 10;
 
+function parseLLMResponse(response) {
+  const parts = response.split("Used Documents:");
+
+  return {
+    answer: parts[0].trim(),
+    docIds:
+      parts.length > 1
+        ? parts[1]
+          .split("\n")
+          .map((line) => line.replace(/^-\s*/, "").trim())
+          .filter((line) => line.startsWith("DOC_"))
+        : [],
+  };
+}
+
 async function main() {
   await createCollection();
 
@@ -222,14 +237,33 @@ The company encourages continuous learning and provides reimbursement for approv
   }
   console.log("output after search is ", retrievedChunks);
   //const answer = await askLLM(results, userQuery);
-  const answer = await retryAsync(
+  const answerFromLLM = await retryAsync(
     () => askLLM(retrievedChunks, userQuestion),
     3,
     30000 // wait 30 seconds before retry
   );
+
+  //console.log("Raw LLM Response:");
+  //console.log(answerFromLLM);
+  const { answer, docIds } = parseLLMResponse(answerFromLLM);
+
+  const sources = docIds
+    .map((docId) =>
+      retrievedChunks.find((chunk) => chunk.docId === docId)
+    )
+    .filter(Boolean);
+
   console.log("**************************************")
   console.log(`Answer for query "${userQuestion}" is : `, answer);
   console.log("**************************************")
+
+  console.log("\nSources for answer of your query are below :");
+
+  for (const source of sources) {
+    console.log(
+      `- ${source.source} (chunk ${source.chunkIndex})`
+    );
+  }
 }
 
 main().catch((err) => {

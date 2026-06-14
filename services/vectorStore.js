@@ -86,9 +86,22 @@ export async function search(userQuestion, options = {}) {
     return searchResults
         .filter(item => item.score >= minSimilarity)
         .slice(0, topK)
+        .map((item, index) => ({
+            docId: `DOC_${index + 1}`,
+            text: item.payload.text,
+            similarity: item.score,
+            source: item.payload.source,
+            chunkIndex: item.payload.chunkIndex,
+        }));
+
+    return searchResults
+        .filter(item => item.score >= minSimilarity)
+        .slice(0, topK)
         .map(item => ({
             text: item.payload.text,
             similarity: item.score,
+            source: item.payload.source,
+            chunkIndex: item.payload.chunkIndex,
         }));
 
     /*return arr
