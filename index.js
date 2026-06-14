@@ -5,6 +5,7 @@ import { loadMetadata, saveMetadata } from "./services/metadata.js";
 import { generateChunkId } from "./services/hash.js";
 import { search } from "./services/vectorStore.js"
 import { askLLM } from "./services/llm.js";
+import { retryAsync } from "./services/retry.js"
 
 const BATCH_SIZE = 10;
 
@@ -12,16 +13,35 @@ async function main() {
   await createCollection();
 
   // Replace this with readPdf(...) later
-  const documents = [
+  /*const documents = [
     "Employees receive 20 annual leaves every year.",
     "Employees can carry forward up to 5 unused leaves.",
     "Employees are covered under the company medical insurance plan.",
     "Work from home is allowed twice a week with manager approval.",
     "The notice period for resignation is 60 days.",
-  ];
+  ];*/
+
+  const documents = `
+Employees receive 20 annual leaves every year. Employees can carry forward up to 5 unused leaves to the next calendar year. Employees are covered under the company medical insurance plan, which includes hospitalization and emergency treatment.
+
+Work from home is allowed twice a week with manager approval. Employees are expected to maintain regular communication during working hours and attend all mandatory meetings.
+
+The notice period for resignation is 60 days. Employees may negotiate an early release subject to management approval and successful knowledge transfer.
+
+Performance reviews are conducted twice a year. Salary revisions and bonuses are determined based on individual performance and company policies.
+
+Employees should maintain confidentiality regarding company information and client data. Violation of confidentiality agreements may result in disciplinary action.
+
+The company encourages continuous learning and provides reimbursement for approved certification courses relevant to the employee's role.
+`;
+
+  const chunks = chunkText(documents, 200, 1);
+
+  console.log(chunks);
+  console.log(chunks.length);
 
   //const chunks = chunkText(documents);
-  const chunks = documents;
+  //const chunks = documents;
 
   const metadata = loadMetadata();
 
@@ -188,17 +208,23 @@ async function main() {
   saveMetadata(metadata);
 
   console.log("Ingestion complete!");
+  const userQuery = "How many runs virat kohli scroed in odis";
+  const retrievedChunks = await search(userQuery);
 
-  const results = await search(
-    "How many annual leaves do employees get?"
+  if (retrievedChunks.length === 0) {
+    console.log("No relevant context found.");
+    return;
+  }
+  console.log("output after search is ", results);
+  //const answer = await askLLM(results, userQuery);
+  const answer = await retryAsync(
+    () => askLLM(retrievedChunks, userQuery),
+    3,
+    30000 // wait 30 seconds before retry
   );
-  console.log(results);
-  const answer = await askLLM(
-    results,
-    "How many annual leaves do employees get?"
-  );
-
-  console.log(answer);
+  console.log("**************************************")
+  console.log(`Answer for query ${userQuery} is : `, answer);
+  console.log("**************************************")
 }
 
 main().catch((err) => {

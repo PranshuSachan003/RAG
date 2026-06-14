@@ -2,6 +2,7 @@ import { generateEmbedding } from "./embedding.js";
 import { searchChunks } from "./qdrant.js";
 
 const vectorStore = [];
+//const MIN_SIMILARITY = 0.75;
 
 export function addToVectorStore(text, embedding) {
     vectorStore.push({
@@ -32,7 +33,7 @@ function cosineSimilarity(vecA, vecB) {
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-export async function search(userQuestion, topK = 3) {
+export async function search(userQuestion, topK = 3, minSimilarity = 0.70) {
     /*let searchResults = [];
     let userEmbed = await generateEmbedding(userQuestion);
     for (const ele of vectorStore) {
@@ -45,10 +46,18 @@ export async function search(userQuestion, topK = 3) {
 
     const searchResults = await searchChunks(queryEmbedding);
     console.dir(searchResults, { depth: null });
-    return searchResults.map(item => ({
+    /*return searchResults.map(item => ({
         text: item.payload.text,
         similarity: item.score,
-    }));
+    }));*/
+
+    return searchResults
+        .filter(item => item.score >= minSimilarity)
+        .slice(0, topK)
+        .map(item => ({
+            text: item.payload.text,
+            similarity: item.score,
+        }));
 
     /*return arr
         .filter(item => item.cosine >= 0.75)
