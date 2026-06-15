@@ -1,6 +1,7 @@
 import { search } from "./vectorStore.js";
 import { askLLM } from "./llm.js";
 import { retryAsync } from "./retry.js";
+import { getRecentHistory, buildSearchQuery, addMessage } from "./conversationMemory.js";
 
 function parseLLMResponse(response) {
     const parts = response.split("Used Documents:");
@@ -29,11 +30,20 @@ export async function askQuestion(userQuestion, options = {}) {
         source = null,
     } = options;
 
-    const retrievedChunks = await search(userQuestion, {
+    const searchQuery =
+        buildSearchQuery(userQuestion);
+
+    const retrievedChunks =
+        await search(searchQuery, {
+            topK,
+            minSimilarity,
+            source
+        });
+    /*const retrievedChunks = await search(userQuestion, {
         topK,
         minSimilarity,
         source
-    });
+    });*/
 
     if (retrievedChunks.length === 0) {
         console.log(
@@ -68,6 +78,16 @@ export async function askQuestion(userQuestion, options = {}) {
     );
 
     console.log(answer);
+    addMessage(
+        "user",
+        userQuestion
+    );
+
+    addMessage(
+        "assistant",
+        answer,
+        sources
+    );
 
     console.log(
         "**************************************"

@@ -2,6 +2,7 @@ import readline from "readline";
 import { ingestAll } from "./ingest.js";
 import { askQuestion } from "./services/askQuestion.js";
 import { detectSource } from "./services/sourceResolver.js";
+import { clearHistory, printHistory } from "./services/conversationMemory.js";
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -32,6 +33,17 @@ async function main() {
       lower === "quit"
     ) {
       break;
+    }
+
+    if (question === "history") {
+      printHistory();
+      continue;
+    }
+
+    if (question === "clear") {
+      clearHistory();
+      console.log("Conversation history cleared.");
+      continue;
     }
 
     if (!question.trim()) {
