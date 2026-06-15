@@ -35,12 +35,12 @@ async function main() {
       break;
     }
 
-    if (question === "history") {
+    if (lower === "history") {
       printHistory();
       continue;
     }
 
-    if (question === "clear") {
+    if (lower === "clear") {
       clearHistory();
       console.log("Conversation history cleared.");
       continue;
@@ -51,13 +51,27 @@ async function main() {
     }
 
     const source = detectSource(question);
-    await askQuestion(question, {
+    const result = await askQuestion(question, {
       source,
     });
 
-    console.log(
-      "\n---------------------------------\n"
-    );
+    console.log();
+
+    console.log("Answer:");
+
+    console.log(result.answer);
+
+    console.log();
+
+    console.log("Sources:");
+
+    for (const item of result.sources) {
+      console.log(
+        `- ${item.source} (chunk ${item.chunkIndex})`
+      );
+    }
+
+    console.log("\n--------------------------------\n");
   }
 
   rl.close();

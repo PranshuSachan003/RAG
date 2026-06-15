@@ -1,103 +1,145 @@
 import { search } from "./vectorStore.js";
 import { askLLM } from "./llm.js";
 import { retryAsync } from "./retry.js";
-import { getRecentHistory, buildSearchQuery, addMessage } from "./conversationMemory.js";
+import {
+  buildSearchQuery,
+  addMessage,
+} from "./conversationMemory.js";
 
 function parseLLMResponse(response) {
-    const parts = response.split("Used Documents:");
+  const parts = response.split("Used Documents:");
 
-    return {
-        answer: parts[0].trim(),
-        docIds:
-            parts.length > 1
-                ? parts[1]
-                    .split("\n")
-                    .map((line) =>
-                        line.replace(/^-\s*/, "").trim()
-                    )
-                    .filter((line) =>
-                        line.startsWith("DOC_")
-                    )
-                : [],
-    };
+  return {
+    answer: parts[0].trim(),
+    docIds:
+      parts.length > 1
+        ? parts[1]
+            .split("\n")
+            .map((line) =>
+              line.replace(/^-\s*/, "").trim()
+            )
+            .filter((line) =>
+              line.startsWith("DOC_")
+            )
+        : [],
+  };
 }
 
-export async function askQuestion(userQuestion, options = {}) {
+export async function askQuestion(
+  userQuestion,
+  options = {}
+) {
+  const {
+    topK = 3,
+    minSimilarity = 0.75,
+    source = null,
+  } = options;
 
-    const {
-        topK = 3,
-        minSimilarity = 0.75,
-        source = null,
-    } = options;
+  try {
+    // ----------------------------
+    // Build search query
+    // ----------------------------
 
     const searchQuery =
-        buildSearchQuery(userQuestion);
+      buildSearchQuery(userQuestion);
+
+    // ----------------------------
+    // Retrieve context
+    // ----------------------------
 
     const retrievedChunks =
-        await search(searchQuery, {
-            topK,
-            minSimilarity,
-            source
-        });
-    /*const retrievedChunks = await search(userQuestion, {
+      await search(searchQuery, {
         topK,
         minSimilarity,
-        source
-    });*/
+        source,
+      });
+
+    // ----------------------------
+    // No context found
+    // ----------------------------
 
     if (retrievedChunks.length === 0) {
-        console.log(
-            "I could not find the answer in the provided context."
-        );
-        return;
+      return {
+        success: true,
+        found: false,
+        answer:
+          "I could not find the answer in the provided context.",
+        sources: [],
+        context: [],
+      };
     }
 
-    const answerFromLLM = await retryAsync(
-        () => askLLM(retrievedChunks, userQuestion),
+    // ----------------------------
+    // Ask LLM
+    // ----------------------------
+
+    const answerFromLLM =
+      await retryAsync(
+        () =>
+          askLLM(
+            retrievedChunks,
+            userQuestion
+          ),
         3,
         30000
-    );
+      );
 
     const { answer, docIds } =
-        parseLLMResponse(answerFromLLM);
+      parseLLMResponse(answerFromLLM);
+
+    // ----------------------------
+    // Resolve sources
+    // ----------------------------
 
     const sources = docIds
-        .map((docId) =>
-            retrievedChunks.find(
-                (chunk) => chunk.docId === docId
-            )
+      .map((docId) =>
+        retrievedChunks.find(
+          (chunk) =>
+            chunk.docId === docId
         )
-        .filter(Boolean);
+      )
+      .filter(Boolean);
 
-    console.log(
-        "**************************************"
-    );
+    // ----------------------------
+    // Update conversation memory
+    // ----------------------------
 
-    console.log(
-        `Answer for query "${userQuestion}":`
-    );
-
-    console.log(answer);
     addMessage(
-        "user",
-        userQuestion
+      "user",
+      userQuestion
     );
 
     addMessage(
-        "assistant",
-        answer,
-        sources
+      "assistant",
+      answer,
+      sources
     );
 
-    console.log(
-        "**************************************"
-    );
+    // ----------------------------
+    // Return structured response
+    // ----------------------------
 
-    console.log("\nSources:");
+    return {
+      success: true,
+      found: true,
+      answer,
+      sources,
+      context: retrievedChunks,
+    };
+  } catch (error) {
+    console.error(error);
 
-    for (const source of sources) {
-        console.log(
-            `- ${source.source} (chunk ${source.chunkIndex})`
-        );
-    }
+    return {
+      success: false,
+      found: false,
+      answer:
+        "Something went wrong while processing your request.",
+      sources: [],
+      context: [],
+      error:
+        error instanceof Error
+          ? error.message
+          : String(error),
+    };
+  }
 }
