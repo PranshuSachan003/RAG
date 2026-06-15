@@ -16,3 +16,18 @@ export function saveMetadata(data) {
     JSON.stringify(data, null, 2)
   );
 }
+
+export function ensureFile(metadata, source) {
+  if (!metadata.files) {
+    metadata.files = {};
+  }
+
+  if (!metadata.files[source]) {
+    metadata.files[source] = {
+      lastProcessed: null,
+      chunks: {},
+    };
+  }
+
+  return metadata.files[source];
+}

@@ -1,68 +1,25 @@
 {
-  "ccc81d6a-3b3c-58d8-9d2d-8050ff2bffb8": {
-    "hash": "1de37679eb2c3e38fe8f3d17b210521aea46d6d2443965223588ce8075e2fa36",
-    "chunkIndex": 0,
-    "source": "employee_handbook",
-    "lastUpdated": "2026-06-14T05:31:45.493Z"
-  },
-  "5691d892-e397-521b-9c34-76a8144cdea2": {
-    "hash": "4850ce8e1110d6414bb2ee871bab5df82a44ef9ffe267b8baf22df676521d2e1",
-    "chunkIndex": 1,
-    "source": "employee_handbook",
-    "lastUpdated": "2026-06-14T05:31:45.499Z"
-  },
-  "38b1a72a-ba96-5d00-acf1-c6ae221cd1b3": {
-    "hash": "73b4ccd5cca1221f9d97dbadc80b8c9782b80ccfbd43f95e4195c1309a9079ca",
-    "chunkIndex": 2,
-    "source": "employee_handbook",
-    "lastUpdated": "2026-06-14T05:31:45.499Z"
-  },
-  "ecbe936a-841b-57ed-b3c1-f6c381088ce5": {
-    "hash": "5e293f1b36e0822db9409f7737a0a23866c9933eee8a19bf56645479107c784d",
-    "chunkIndex": 3,
-    "source": "employee_handbook",
-    "lastUpdated": "2026-06-14T05:31:45.499Z"
-  },
-  "c222d820-b36d-5601-a916-2fe359ceac1f": {
-    "hash": "0bedf10579a1a078488ad748fdd56aa56e2c688348d79d97fd470cb174bcfbf5",
-    "chunkIndex": 4,
-    "source": "employee_handbook",
-    "lastUpdated": "2026-06-14T05:31:45.499Z"
-  },
-  "d6c9f716-2346-5558-a389-3211e7e882b0": {
-    "hash": "dc1133ad34179e4ff756f77d3476167098e142ebd1976ff4411c8889b8dab547",
-    "chunkIndex": 5,
-    "source": "employee_handbook",
-    "lastUpdated": "2026-06-14T05:31:45.499Z"
-  },
-  "f9cff6c7-daef-5cf6-9a00-9a17b1183c01": {
-    "hash": "23052721bf7aba22cca49e4cc7297078e773f7e8e6c1cd82bde984006fe6fb7e",
-    "chunkIndex": 6,
-    "source": "employee_handbook",
-    "lastUpdated": "2026-06-14T05:31:45.499Z"
-  },
-  "b785a62d-7efa-5b37-a4d7-2c23deb2a214": {
-    "hash": "8180190f40ead980b3ae6a96b98bea3348f17192873d8656fec48efa57bd62c0",
-    "chunkIndex": 7,
-    "source": "employee_handbook",
-    "lastUpdated": "2026-06-14T05:31:45.500Z"
-  },
-  "72ce0b7f-d5dc-502d-9caa-c9337bd6456c": {
-    "hash": "9d03fb3d4432c7723215e5255df7ef8a0f7fb399e9aed20d9422f95212eb5d7f",
-    "chunkIndex": 8,
-    "source": "employee_handbook",
-    "lastUpdated": "2026-06-14T05:31:45.500Z"
-  },
-  "f196af9b-99e0-5c93-9556-652cad8f289b": {
-    "hash": "ddd76bd42b2e0ea1c975c95932b2793483c9831df7b6c5bcaef3718a4917e765",
-    "chunkIndex": 9,
-    "source": "employee_handbook",
-    "lastUpdated": "2026-06-14T05:31:45.500Z"
-  },
-  "a70fd4ac-e3a4-52c6-84f6-49d9ea076ea3": {
-    "hash": "c4149b57702a079302218331ae664968749792b52ea2b23a08ac3ae4d04e5e09",
-    "chunkIndex": 10,
-    "source": "employee_handbook",
-    "lastUpdated": "2026-06-14T05:31:45.953Z"
+  "files": {
+    "employee_handbook": {
+      "lastProcessed": "2026-06-14T17:10:37.370Z",
+      "chunks": {
+        "e96f67cc-371c-5df1-bdb9-0b0f42cb5ece": {
+          "hash": "3e82d01f4330eccc531064a3e9d8422c69be3840203c698bd596bfc2c8f9b096",
+          "chunkIndex": 0
+        },
+        "5ba5b9c5-8df5-51bc-ae6a-6f15c47a9e36": {
+          "hash": "b388e9315ebef36e042ecf66d81fc34f56927b6671ad008afc816c5cc6cd6a1f",
+          "chunkIndex": 1
+        },
+        "3d8959d1-6d37-5e5e-9916-fd2c190cf8f7": {
+          "hash": "891756b1f8990bc09da1ac9ef61a6ba5b27eb7f1941dacd1944831c7739a83d9",
+          "chunkIndex": 2
+        },
+        "386a90eb-be3f-59ce-834f-a7745acc370c": {
+          "hash": "a50b654aa14765002ae24964790a4b0b4834dffc6a6ea781b019a5f22f6cd280",
+          "chunkIndex": 3
+        }
+      }
+    }
   }
 }
