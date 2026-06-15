@@ -14,19 +14,20 @@ function parseLLMResponse(response) {
     docIds:
       parts.length > 1
         ? parts[1]
-            .split("\n")
-            .map((line) =>
-              line.replace(/^-\s*/, "").trim()
-            )
-            .filter((line) =>
-              line.startsWith("DOC_")
-            )
+          .split("\n")
+          .map((line) =>
+            line.replace(/^-\s*/, "").trim()
+          )
+          .filter((line) =>
+            line.startsWith("DOC_")
+          )
         : [],
   };
 }
 
 export async function askQuestion(
   userQuestion,
+  sessionId,
   options = {}
 ) {
   const {
@@ -41,7 +42,7 @@ export async function askQuestion(
     // ----------------------------
 
     const searchQuery =
-      buildSearchQuery(userQuestion);
+      buildSearchQuery(userQuestion, sessionId);
 
     // ----------------------------
     // Retrieve context
@@ -105,11 +106,13 @@ export async function askQuestion(
     // ----------------------------
 
     addMessage(
+      sessionId,
       "user",
       userQuestion
     );
 
     addMessage(
+      sessionId,
       "assistant",
       answer,
       sources

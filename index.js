@@ -4,6 +4,8 @@ import { askQuestion } from "./services/askQuestion.js";
 import { detectSource } from "./services/sourceResolver.js";
 import { clearHistory, printHistory } from "./services/conversationMemory.js";
 
+const SESSION_ID = "cli";
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -51,11 +53,11 @@ async function main() {
     }
 
     const source = detectSource(question);
-    const result = await askQuestion(question, {
+    const result = await askQuestion(question, SESSION_ID, {
       source,
     });
 
-    console.log();
+    console.log("Processing...");
 
     console.log("Answer:");
 

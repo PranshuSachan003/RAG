@@ -77,11 +77,7 @@ export async function search(userQuestion, options = {}) {
 
     //const searchResults = await searchChunks(queryEmbedding);
     const searchResults = await searchChunks(queryEmbedding, filter);
-    console.dir(searchResults, { depth: null });
-    /*return searchResults.map(item => ({
-        text: item.payload.text,
-        similarity: item.score,
-    }));*/
+    //console.dir(searchResults, { depth: null });
 
     return searchResults
         .filter(item => item.score >= minSimilarity)
