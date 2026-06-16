@@ -121,17 +121,34 @@ export async function askQuestion(
     // ----------------------------
     // Return structured response
     // ----------------------------
-
+    return {
+      success: true,
+      found: true,
+      answer,
+      sources: sources.map((source) => ({
+        source: source.source,
+        chunkIndex: source.chunkIndex,
+      })),
+    };
+    /*
     return {
       success: true,
       found: true,
       answer,
       sources,
       context: retrievedChunks,
-    };
+    };*/
   } catch (error) {
     console.error(error);
-
+    return {
+      success: true,
+      found: false,
+      answer:
+        "I could not find the answer in the provided context.",
+      sources: [],
+    };
+    
+    /*
     return {
       success: false,
       found: false,
@@ -143,6 +160,6 @@ export async function askQuestion(
         error instanceof Error
           ? error.message
           : String(error),
-    };
+    };*/
   }
 }

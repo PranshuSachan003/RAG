@@ -10,48 +10,60 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = 3000;
+const PORT = 4000;
 
 await ingestAll();
 
-console.log("Documents loaded.");
+console.log("Documents loaded successfully.");
 
 app.get("/health", (req, res) => {
-  res.json({
-    status: "ok",
-  });
+    res.json({
+        success: true,
+        status: "healthy",
+    });
 });
 
 app.post("/chat", async (req, res) => {
-  try {
-    const { question } = req.body;
-
-    if (!question?.trim()) {
-      return res.status(400).json({
+    try {
+      const { question, sessionId } = req.body;
+  
+      if (!question?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Question is required",
+        });
+      }
+  
+      if (!sessionId?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "SessionId is required",
+        });
+      }
+  
+      const source = detectSource(question);
+  
+      const result = await askQuestion(
+        question,
+        sessionId,
+        {
+          source,
+        }
+      );
+  
+      return res.json(result);
+    } catch (err) {
+      console.error(err);
+  
+      return res.status(500).json({
         success: false,
-        message: "Question is required",
+        message: "Internal server error",
       });
     }
-
-    const source = detectSource(question);
-
-    const result = await askQuestion(question, {
-      source,
-    });
-
-    res.json(result);
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
-});
+  });
 
 app.listen(PORT, () => {
-  console.log(
-    `Server listening on http://localhost:${PORT}`
-  );
+    console.log(
+        `Server listening on http://localhost:${PORT}`
+    );
 });
