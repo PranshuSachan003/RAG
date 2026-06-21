@@ -1,22 +1,14 @@
 import { chunkText } from "./services/chunker.js";
 import { generateEmbedding } from "./services/embedding.js";
-import {
-  createCollection,
-  insertChunk,
-  deleteChunk,
-} from "./services/qdrant.js";
-
-import {
-  loadMetadata,
-  saveMetadata,
-  ensureFile,
-} from "./services/metadata.js";
-
+import { createCollection, insertChunk, deleteChunk, } from "./services/qdrant.js";
+import { loadMetadata, saveMetadata, ensureFile, } from "./services/metadata.js";
 import { generateChunkId } from "./services/hash.js";
 import { retryAsync } from "./services/retry.js";
 import { loadDocuments } from "./services/documentLoader.js";
+import { config } from "./config.js";
+import { addDocument } from "./services/bm25.js";
 
-const BATCH_SIZE = 10;
+//const BATCH_SIZE = 10;
 
 async function ingestDocument(
   document,
@@ -33,8 +25,8 @@ async function ingestDocument(
 
   const chunks = chunkText(
     document.text,
-    200,
-    1
+    config.ingestion.chunking.chunkSize,
+    config.ingestion.chunking.overlap
   );
 
   const currentIds = new Set();
@@ -46,6 +38,14 @@ async function ingestDocument(
 
     const { id, hash } =
       generateChunkId(chunk);
+
+    // Always add to BM25
+    addDocument({
+      id,
+      text: chunk,
+      source: document.source,
+      chunkIndex: i,
+    });
 
     currentIds.add(id);
 
@@ -72,16 +72,15 @@ async function ingestDocument(
   for (
     let start = 0;
     start < chunksToProcess.length;
-    start += BATCH_SIZE
+    start += config.ingestion.batchSize
   ) {
     const batch = chunksToProcess.slice(
       start,
-      start + BATCH_SIZE
+      start + config.ingestion.batchSize
     );
 
     console.log(
-      `Processing batch ${
-        start / BATCH_SIZE + 1
+      `Processing batch ${start / config.ingestion.batchSize + 1
       }`
     );
 
@@ -90,12 +89,9 @@ async function ingestDocument(
         batch.map(async (item) => {
           const embedding =
             await retryAsync(
-              () =>
-                generateEmbedding(
-                  item.chunk
-                ),
-              3,
-              1000
+              () => generateEmbedding(item.chunk),
+              config.retry.embedding.retries,
+              config.retry.embedding.delay
             );
 
           return {

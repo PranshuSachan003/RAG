@@ -3,6 +3,7 @@ import { ingestAll } from "./ingest.js";
 import { askQuestion } from "./services/askQuestion.js";
 import { detectSource } from "./services/sourceResolver.js";
 import { clearHistory, printHistory } from "./services/conversationMemory.js";
+import { getDocuments } from "./services/bm25.js";
 
 const SESSION_ID = "cli";
 
@@ -19,6 +20,9 @@ function askUser() {
 
 async function main() {
   await ingestAll();
+
+  //console.log("documents from bm25")
+  //console.log(getDocuments());
 
   console.log(
     "Ask anything (type 'exit' to quit)\n"

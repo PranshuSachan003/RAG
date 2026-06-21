@@ -1,29 +1,10 @@
 import { search } from "./vectorStore.js";
-import { askLLM } from "./llm.js";
+import { askLLM, parseLLMResponse } from "./llm.js";
 import { retryAsync } from "./retry.js";
-import {
-  buildSearchQuery,
-  addMessage,
-} from "./conversationMemory.js";
+import { buildSearchQuery, addMessage, getRecentHistory} from "./conversationMemory.js";
+import { config } from "../config.js";
+import { rewriteQuery } from "./queryRewriter.js";
 
-function parseLLMResponse(response) {
-  const parts = response.split("Used Documents:");
-
-  return {
-    answer: parts[0].trim(),
-    docIds:
-      parts.length > 1
-        ? parts[1]
-          .split("\n")
-          .map((line) =>
-            line.replace(/^-\s*/, "").trim()
-          )
-          .filter((line) =>
-            line.startsWith("DOC_")
-          )
-        : [],
-  };
-}
 
 export async function askQuestion(
   userQuestion,
@@ -31,8 +12,9 @@ export async function askQuestion(
   options = {}
 ) {
   const {
-    topK = 3,
-    minSimilarity = 0.75,
+    topK = config.retrieval.topK,
+    minSimilarity =
+    config.retrieval.minSimilarity,
     source = null,
   } = options;
 
@@ -41,9 +23,25 @@ export async function askQuestion(
     // Build search query
     // ----------------------------
 
-    const searchQuery =
-      buildSearchQuery(userQuestion, sessionId);
+    const history =
+      getRecentHistory(sessionId);
 
+    let searchQuery;
+
+    try {
+      if (config.retrieval.enableQueryRewrite) {
+      searchQuery = await rewriteQuery(history,userQuestion);
+      }
+      else {
+        searchQuery = buildSearchQuery(userQuestion, sessionId);
+      }
+    } catch {
+      searchQuery = buildSearchQuery(userQuestion, sessionId);
+    }
+    console.log(
+      "Search Query:",
+      searchQuery
+    );
     // ----------------------------
     // Retrieve context
     // ----------------------------
@@ -54,7 +52,7 @@ export async function askQuestion(
         minSimilarity,
         source,
       });
-
+    //console.log("retrievedChunks are" , retrievedChunks);
     // ----------------------------
     // No context found
     // ----------------------------
@@ -81,8 +79,8 @@ export async function askQuestion(
             retrievedChunks,
             userQuestion
           ),
-        3,
-        30000
+        config.retry.llm.retries,
+        config.retry.llm.delay
       );
 
     const { answer, docIds } =
@@ -147,7 +145,7 @@ export async function askQuestion(
         "I could not find the answer in the provided context.",
       sources: [],
     };
-    
+
     /*
     return {
       success: false,

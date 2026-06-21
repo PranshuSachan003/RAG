@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 
-export function loadDocuments(directory) {
-  const files = fs.readdirSync(directory);
+export function loadDocuments(folderPath) {
+  const files = fs.readdirSync(folderPath);
 
   const documents = [];
 
@@ -11,14 +11,34 @@ export function loadDocuments(directory) {
       continue;
     }
 
+    const txtPath = path.join(folderPath, file);
+
+    const jsonPath = txtPath.replace(
+      /\.txt$/,
+      ".json"
+    );
+
     const text = fs.readFileSync(
-      path.join(directory, file),
+      txtPath,
       "utf8"
     );
 
+    let metadata = {};
+
+    if (fs.existsSync(jsonPath)) {
+      metadata = JSON.parse(
+        fs.readFileSync(jsonPath, "utf8")
+      );
+    }
+
     documents.push({
-      source: path.parse(file).name,
       text,
+
+      source:
+        metadata.source ??
+        file.replace(".txt", ""),
+
+      metadata,
     });
   }
 
